@@ -1,0 +1,41 @@
+html {
+    font-size: 14px;
+    scroll-behavior: smooth;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 60px;
+}
+/* Kaydýrýlabilir kart þeridini güzelleþtiren kodlar */
+.custom-scrollbar {
+    display: flex;
+    overflow-x: auto;
+    gap: 15px;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch; /* Mobil akýcýlýk */
+}
+
+    /* Kaydýrma çubuðunun tasarýmý */
+    .custom-scrollbar::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #4a4a4a;
+        border-radius: 10px;
+    }

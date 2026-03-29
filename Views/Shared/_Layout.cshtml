@@ -1,0 +1,142 @@
+﻿@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>@ViewData["Title"] - SEYRİ_ALA</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom shadow-sm">
+        <div class="container">
+            @* LOGO VE MARKA ALANI *@
+            <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
+                <img src="~/images/logo.png" alt="Logo" style="height: 40px; width: auto; margin-right: 10px; border-radius: 8px;">
+                <span class="fw-bold tracking-tight">SEYRİ_ALA</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    @* 2. DÖNEM YENİ MENÜ LİNKLERİ *@
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#map-frame">
+                            <i class="fas fa-map-marked-alt me-1"></i> Harita
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white me-3" href="#ai-selection">
+                            <i class="fas fa-robot me-1"></i> AI Rehber
+                        </a>
+                    </li>
+
+                    @* DİL DEĞİŞTİRME *@
+                    <li class="nav-item d-flex align-items-center me-3">
+                        <form asp-controller="Home" asp-action="ChangeLanguage" asp-route-returnUrl="@Context.Request.Path" method="post" class="d-flex gap-1">
+                            <button type="submit" name="culture" value="tr" class="btn btn-sm btn-outline-light py-0 px-2" style="font-size: 0.8rem; border-radius: 20px;">TR</button>
+                            <button type="submit" name="culture" value="en" class="btn btn-sm btn-outline-light py-0 px-2" style="font-size: 0.8rem; border-radius: 20px;">EN</button>
+                        </form>
+                    </li>
+
+                    @* TEMA DEĞİŞTİRME *@
+                    <li class="nav-item d-flex align-items-center me-2">
+                        <button type="button" class="btn btn-outline-info" onclick="toggleTheme()" style="border-radius: 50px; padding: 2px 12px;">
+                            <i id="themeIcon" class="fas fa-sun"></i>
+                        </button>
+                    </li>
+
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <li class="nav-item">
+                            <span class="nav-link text-white">@Localizer["Hosgeldin"], @User.FindFirst("FullName")?.Value</span>
+                        </li>
+
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-warning fw-bold" asp-controller="Home" asp-action="AdminDashboard">
+                                    <i class="fas fa-user-shield"></i> Yönetim
+                                </a>
+                            </li>
+                        }
+
+                        <li class="nav-item">
+                            <a class="nav-link text-white" asp-controller="Home" asp-action="Favorites">
+                                <i class="fas fa-heart text-danger"></i> Favorilerim
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                <button type="submit" class="nav-link btn btn-link text-white border-0">@Localizer["CikisYap"]</button>
+                            </form>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link text-white" asp-controller="Account" asp-action="Register">@Localizer["KayitOl"]</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" asp-controller="Account" asp-action="Login">@Localizer["GirisYap"]</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted bg-dark mt-auto">
+        <div class="container text-center py-3">
+            &copy; 2026 - SEYRİ_ALA | <span class="text-info">Predator Mode Active</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function toggleTheme() {
+            const htmlElement = document.documentElement;
+            const themeIcon = document.getElementById('themeIcon');
+            let currentTheme = htmlElement.getAttribute('data-bs-theme');
+
+            if (currentTheme === 'dark') {
+                htmlElement.setAttribute('data-bs-theme', 'light');
+                themeIcon.className = 'fas fa-moon';
+                localStorage.setItem('theme', 'light');
+            } else {
+                htmlElement.setAttribute('data-bs-theme', 'dark');
+                themeIcon.className = 'fas fa-sun';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            const themeIcon = document.getElementById('themeIcon');
+            if (themeIcon) {
+                themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        })();
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

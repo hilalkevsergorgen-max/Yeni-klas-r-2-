@@ -1,0 +1,445 @@
+﻿@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@model List<SEYRİ_ALA.Models.City>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+@functions {
+    string GetRegion(string cityName)
+    {
+        string[] marmara = { "İstanbul", "Edirne", "Çanakkale", "Bursa", "Kocaeli", "Sakarya", "Tekirdağ", "Balıkesir", "Yalova", "Kırklareli", "Bilecik" };
+        string[] ege = { "İzmir", "Aydın", "Muğla", "Manisa", "Denizli", "Afyonkarahisar", "Kütahya", "Uşak" };
+        string[] akdeniz = { "Antalya", "Adana", "Mersin", "Hatay", "Isparta", "Burdur", "Osmaniye", "Kahramanmaraş" };
+        string[] icAnadolu = { "Ankara", "Konya", "Kayseri", "Eskişehir", "Sivas", "Kırıkkale", "Aksaray", "Karaman", "Kırşehir", "Niğde", "Nevşehir", "Yozgat", "Çankırı" };
+        string[] karadeniz = { "Trabzon", "Samsun", "Ordu", "Rize", "Giresun", "Artvin", "Sinop", "Kastamonu", "Bolu", "Düzce", "Zonguldak", "Tokat", "Gümüşhane", "Bayburt", "Bartın", "Karabük", "Amasya", "Çorum" };
+        string[] doguAnadolu = { "Erzurum", "Malatya", "Elazığ", "Van", "Erzincan", "Kars", "Hakkari", "Muş", "Bitlis", "Ağrı", "Iğdır", "Ardahan", "Tunceli", "Bingöl" };
+        string[] guneyDogu = { "Gaziantep", "Şanlıurfa", "Diyarbakır", "Mardin", "Adıyaman", "Batman", "Siirt", "Şırnak", "Kilis" };
+
+        if (marmara.Contains(cityName)) return "Marmara";
+        if (ege.Contains(cityName)) return "Ege";
+        if (akdeniz.Contains(cityName)) return "Akdeniz";
+        if (icAnadolu.Contains(cityName)) return "İç Anadolu";
+        if (karadeniz.Contains(cityName)) return "Karadeniz";
+        if (doguAnadolu.Contains(cityName)) return "Doğu Anadolu";
+        if (guneyDogu.Contains(cityName)) return "Güneydoğu";
+        return "Bilinmiyor";
+    }
+}
+
+@* 1. HERO SECTION *@
+<div class="hero-section text-center">
+    <div class="hero-content">
+        <h1 class="display-2 fw-bold mb-3 text-white">Seyri Âlâ</h1>
+        <p class="lead mb-4 text-white-50">Türkiye'nin kadim şehirlerinde sana özel bir yolculuk.</p>
+        <a href="#selection-start" class="btn btn-primary btn-lg px-5 rounded-pill shadow-lg explore-btn">✨ Keşfetmeye Başla</a>
+    </div>
+</div>
+
+<div class="container-fluid px-lg-5" id="selection-start">
+    @* 2. BÖLGE SEÇİM *@
+    <div class="text-center py-5">
+        <h2 class="fw-bold mb-4 text-white">Bir Bölge Keşfedin</h2>
+        <div class="d-flex gap-2 justify-content-center flex-wrap region-nav">
+            <button class="region-pill active" onclick="selectRegion('Tümü', this)">Tümü</button>
+            @{
+                string[] regions = { "Marmara", "Ege", "Akdeniz", "İç Anadolu", "Karadeniz", "Doğu Anadolu", "Güneydoğu" };
+            }
+            @foreach (var region in regions)
+            {
+                <button class="region-pill" onclick="selectRegion('@region', this)">@region</button>
+            }
+        </div>
+    </div>
+
+    @* 3. ŞEHİR SCROLLER *@
+    <div id="city-scroller-container" class="mb-5">
+        <div class="d-flex overflow-auto pb-4 gap-4 custom-scrollbar" id="city-scroller">
+            @foreach (var city in Model)
+            {
+                <div class="city-card-item" data-region="@GetRegion(city.Name)">
+                    <div class="card city-card border-0 shadow-lg h-100 @(city.Favorites != null && city.Favorites.Any() ? "is-liked" : "")"
+                                      onclick="focusMap(@city.Latitude.ToString().Replace(',', '.'), @city.Longitude.ToString().Replace(',', '.'), '@city.Name', @city.Id)"
+                                      onmouseenter="showDistance(@city.Latitude.ToString().Replace(',', '.'), @city.Longitude.ToString().Replace(',', '.'), @city.Id)"
+                                      onmouseleave="hideDistance(@city.Id)">
+
+                        <div class="like-wrapper">
+                            <button class="like-btn @(city.Favorites != null && city.Favorites.Any() ? "liked" : "")"
+                                                      onclick="toggleLike(@city.Id, this); event.stopPropagation();">
+                                <i class="@(city.Favorites != null && city.Favorites.Any() ? "fa-solid liked-heart" : "fa-regular") fa-heart"></i>
+                            </button>
+                        </div>
+
+                        <div class="weather-badge"><span id="temp-@city.Id">--°C</span></div>
+                        <div class="distance-badge" id="dist-@city.Id"><span>-- KM</span></div>
+
+                        <img src="https://loremflickr.com/400/250/@city.Name,city" class="card-img-top" style="height: 160px; object-fit: cover; border-radius: 20px;">
+                        <div class="card-body p-3 text-center" style="background: #1a2a6c; border-radius: 0 0 25px 25px; transition: 0.3s;">
+                            <h6 class="fw-bold mb-0 text-white" style="text-shadow: 1px 1px 2px #000;">@city.Name</h6>
+                            <small style="color: #00d2ff; font-weight: 500;">@GetRegion(city.Name)</small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* 4. HARİTA *@
+    <div class="row justify-content-center mb-5" id="map-frame">
+        <div class="col-lg-10">
+            <div id="map-frame-box" class="shadow-lg rounded-5 overflow-hidden border border-white border-8">
+                <div id="map" style="height: 550px; width: 100%; z-index: 1;"></div>
+            </div>
+        </div>
+    </div>
+
+    @* 5. AI PANEL *@
+    <div class="row justify-content-center pb-5">
+        <div class="col-lg-8">
+            <div class="ai-box p-5 shadow-lg rounded-5">
+                <h3 class="text-center fw-bold mb-4 text-white">Gezgin Kriterlerinizi Belirleyin</h3>
+                <div class="d-flex flex-wrap gap-3 justify-content-center mb-4">
+                    <div class="filter-check"><input type="checkbox" id="c1"><label for="c1">📜 Tarihi Doku</label></div>
+                    <div class="filter-check"><input type="checkbox" id="c2"><label for="c2">🌲 Doğal Yapı</label></div>
+                    <div class="filter-check"><input type="checkbox" id="c3"><label for="c3">🍲 Gastronomi</label></div>
+                    <div class="filter-check"><input type="checkbox" id="c4"><label for="c4">🎨 Sanat & Kültür</label></div>
+                </div>
+                <textarea id="ai-text" class="form-control mb-4 bg-dark text-white rounded-4" rows="3" placeholder="Yapay zekaya detayları anlatın..."></textarea>
+                <button class="btn btn-primary w-100 rounded-pill py-3 fw-bold mb-3" onclick="generateAi()">🚀 Akıllı Rota Oluştur</button>
+
+                <div id="route-info-container" style="display:none;">
+                    <div class="alert alert-info border-0 shadow-sm rounded-4 text-center py-3"
+                                      style="background: rgba(13, 110, 253, 0.1); backdrop-filter: blur(10px); color: #fff;">
+                        <i class="fas fa-route me-2 text-primary"></i>
+                        <span class="fw-bold">Toplam Yolculuk Mesafesi:</span>
+                        <span id="total-distance-km" class="badge bg-primary rounded-pill px-3 ms-2">0 KM</span>
+                    </div>
+                </div>
+
+                <div id="ai-loading" class="text-center mt-3" style="display:none;">
+                    <div class="spinner-grow text-primary" role="status"></div>
+                    <p class="mt-2 text-info pulse fw-bold">Rotalar Optimize Ediliyor...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+
+    /* Tasarım Kuralların Korundu */
+        .hero-section {
+                background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1920');
+                background-size: cover;
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 0 0 80px 80px;
+
+    }
+
+        .hero-content {
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(25px);
+                -webkit-backdrop-filter: blur(25px);
+                padding: 50px;
+                border-radius: 40px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                animation: fadeInScale 1.2s ease-out;
+
+    }
+
+
+    /* Gümüşten Altına Butonlar */
+        .region-pill {
+                padding: 10px 25px;
+                border-radius: 50px;
+                background: linear-gradient(145deg, #bdc3c7, #95a5a6);
+                border: 1px solid #7f8c8d;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                color: #2c3e50;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    }
+
+                .region-pill:hover, .region-pill.active {
+                        background: linear-gradient(145deg, #f1c40f, #d4af37);
+                        border-color: #b8860b;
+                        color: #000;
+                        transform: translateY(-5px) scale(1.05);
+                        box-shadow: 0 8px 25px rgba(241, 196, 15, 0.4);
+
+        }
+
+        .city-card {
+                background: rgba(255,255,255,0.05);
+                border-radius: 25px;
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                cursor: pointer;
+                position: relative;
+
+    }
+
+            .city-card:hover {
+                    transform: scale(1.05) translateY(-10px);
+                    box-shadow: 0 15px 35px rgba(13, 110, 253, 0.5) !important;
+
+    }
+
+            .city-card.is-liked:hover {
+                    box-shadow: 0 15px 35px rgba(255, 71, 87, 0.6) !important;
+
+    }
+
+        .like-wrapper {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                z-index: 15;
+
+    }
+
+        .like-btn {
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255,255,255,0.3);
+                border-radius: 50%;
+                color: white;
+                width: 35px;
+                height: 35px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: 0.3s;
+
+    }
+
+            .like-btn i {
+                    font-size: 18px;
+          0.3s ease;
+
+    }
+
+            .like-btn.liked i, .liked-heart {
+                    color: #ff4757 !important;
+
+    }
+
+        .weather-badge {
+                position: absolute;
+                top: 15px;
+                left: 15px;
+                z-index: 10;
+                background: rgba(0,0,0,0.3);
+                padding: 2px 10px;
+                border-radius: 10px;
+                color: white;
+
+    }
+
+        .distance-badge {
+                position: absolute;
+                top: 45px;
+                left: 15px;
+                z-index: 10;
+                background: rgba(13, 110, 253, 0.7);
+                backdrop-filter: blur(8px);
+                padding: 4px 10px;
+                border-radius: 12px;
+                color: white;
+                font-size: 11px;
+                font-weight: bold;
+                opacity: 0;
+                transform: translateX(-10px);
+                transition: all 0.4s ease;
+                pointer-events: none;
+
+    }
+
+            .distance-badge.show {
+                    opacity: 1;
+                    transform: translateX(0);
+
+    }
+
+        @@keyframes fadeInScale {
+                from
+
+    {
+                    opacity: 0;
+                    transform: scale(0.9);
+
+    }
+
+            to {
+                    opacity: 1;
+                    transform: scale(1);
+
+    }
+
+
+    }
+
+        .ai-box {
+                background: rgba(255,255,255,0.03);
+                backdrop-filter: blur(15px);
+                border: 1px solid rgba(255,255,255,0.1);
+
+    }
+
+        .custom-scrollbar::-webkit-scrollbar {
+                height: 6px;
+
+    }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #0d6efd;
+                border-radius: 10px;
+
+    }
+</style>
+
+<script>
+    let map;
+    let routeLayer = L.layerGroup();
+    let userLat, userLng;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                userLat = position.coords.latitude;
+                userLng = position.coords.longitude;
+            });
+        }
+            // Sayfa yüklendiğinde tüm şehirlerin hava durumunu otomatik çeken blok
+    const cityCards = document.querySelectorAll('.city-card-item');
+    cityCards.forEach(async (item) => {
+        const cityId = item.dataset.id || item.querySelector('.like-btn')?.getAttribute('onclick').match(/\d+/)[0];
+
+        try {
+            // Senin CityController'daki yeni metodunla konuşuyor
+            const response = await fetch(`/City/GetWeather?cityId=${cityId}`);
+            if (response.ok) {
+                const data = await response.json();
+                // Gelen dereceyi ilgili span içine basar
+                const tempSpan = document.getElementById(`temp-${cityId}`);
+                if(tempSpan) {
+                    tempSpan.innerText = Math.round(data.temperature) + "°C";
+                }
+            }
+        } catch (err) {
+            console.error("Hava durumu verisi çekilemedi:", err);
+        }
+    });
+        const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+        map = L.map('map', { scrollWheelZoom: false, layers: [street] }).setView([39.0, 35.5], 6);
+        L.control.layers({"🗺️ Harita": street, "🛰️ Uydu": satellite}, null, {collapsed: true}).addTo(map);
+        routeLayer.addTo(map);
+        setTimeout(() => map.invalidateSize(), 500);
+    });
+
+    function calculateKM(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    function showDistance(lat, lng, id) {
+        if (userLat && userLng) {
+            const dist = calculateKM(userLat, userLng, lat, lng);
+            const badge = document.getElementById(`dist-${id}`);
+            if(badge) {
+                badge.querySelector('span').innerText = dist.toFixed(1) + " KM";
+                badge.classList.add('show');
+            }
+        }
+    }
+
+    function hideDistance(id) {
+        const badge = document.getElementById(`dist-${id}`);
+        if(badge) badge.classList.remove('show');
+    }
+
+    async function toggleLike(cityId, btn) {
+        try {
+            const response = await fetch(`/Route/ToggleLike?cityId=${cityId}`, { method: 'POST' });
+            if (response.ok) {
+                const data = await response.json();
+                const icon = btn.querySelector('i');
+                const card = btn.closest('.city-card');
+                if (data.isLiked) {
+                    icon.className = 'fa-solid fa-heart liked-heart';
+                    card.classList.add('is-liked');
+                } else {
+                    icon.className = 'fa-regular fa-heart';
+                    icon.style.color = 'white';
+                    card.classList.remove('is-liked');
+                }
+                btn.style.transform = 'scale(1.3)';
+                setTimeout(() => btn.style.transform = 'scale(1)', 200);
+            }
+        } catch (err) { console.error("Beğeni hatası:", err); }
+    }
+
+    // --- GERİ GELEN KRİTİK BUTON: focusMap ---
+    function focusMap(lat, lng, name, id) {
+        map.flyTo([lat, lng], 11, { animate: true, duration: 1.5 });
+
+        // Harita üzerindeki Popup içeriği (Detaylar butonu buraya eklendi kardo!)
+        const popupContent = `
+            <div class="text-center">
+                <b style="font-size:1.1rem;">${name}</b><br>
+                <button class="btn btn-primary btn-sm mt-2 rounded-pill px-3"
+                        onclick="window.location.href='/Home/Details/${id}'">
+                  📍 Detaylara Git
+                </button>
+            </div>`;
+
+        L.marker([lat, lng]).addTo(map).bindPopup(popupContent).openPopup();
+    }
+
+    function selectRegion(region, btn) {
+        document.querySelectorAll('.region-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const cards = document.querySelectorAll('.city-card-item');
+        cards.forEach(c => c.style.display = (region === 'Tümü' || c.dataset.region === region) ? 'block' : 'none');
+        const target = { 'Marmara': [[40.7, 28.5], 8], 'Ege': [[38.5, 28.0], 8], 'Akdeniz': [[37.0, 32.5], 7], 'İç Anadolu': [[39.0, 33.5], 7], 'Karadeniz': [[41.2, 35.5], 7], 'Doğu Anadolu': [[39.5, 42.0], 7], 'Güneydoğu': [[37.5, 39.5], 8] }[region] || [[39.0, 35.5], 6];
+        map.flyTo(target[0] || target, target[1] || 6, { animate: true, duration: 2 });
+    }
+
+    async function loadDynamicRoute() {
+        try {
+            const response = await fetch('/test-route');
+            const data = await response.json();
+            const points = data.noktalar || data.Noktalar;
+            const km = data.hesaplananKM || data.HesaplananKM;
+            if (km) {
+                document.getElementById('total-distance-km').innerText = km.toFixed(2) + " KM";
+                document.getElementById('route-info-container').style.display = 'block';
+            }
+            if (points && points.length > 0) {
+                routeLayer.clearLayers();
+                points.forEach(p => {
+                    const marker = L.marker([p.lat || p.Lat, p.lng || p.Lng]);
+                    marker.bindPopup(`<b>${p.ad}</b>`).addTo(routeLayer);
+                });
+                map.flyToBounds(points.map(p => [p.lat || p.Lat, p.lng || p.Lng]), { padding: [50, 50] });
+            }
+        } catch (err) { console.error(err); }
+    }
+
+    function generateAi() {
+        document.getElementById('ai-loading').style.display = 'block';
+        setTimeout(() => { loadDynamicRoute(); document.getElementById('ai-loading').style.display = 'none'; }, 2000);
+    }
+</script>

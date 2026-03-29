@@ -1,0 +1,63 @@
+﻿@model SEYRİ_ALA.Models.RegisterViewModel // MODEL TANIMI
+@{
+    ViewData["Title"] = "Kayıt Ol";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-dark text-white text-center">
+                <h1 class="h4 mb-0">Hemen Kayıt Ol</h1>
+            </div>
+
+            <div class="card-body p-4">
+                <p class="text-muted mb-4">Yeni bir hesap oluşturmak için formu doldurun.</p>
+
+                <form asp-controller="Account" asp-action="Register" method="post">
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="row g-3">
+
+                        <div class="col-12">
+                            <label asp-for="FullName" class="form-label"></label>
+                            <input asp-for="FullName" class="form-control" placeholder="Ad Soyad" />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" placeholder="ornek@mail.com" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Password" class="form-label"></label>
+                            <input asp-for="Password" class="form-control" />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label"></label>
+                            <input asp-for="ConfirmPassword" class="form-control" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">Kayıt Ol</button>
+                    </div>
+
+                    @if (ViewBag.Message != null)
+                    {
+                        <div class="alert alert-info mt-3 text-center">@ViewBag.Message</div>
+                    }
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,320 @@
+﻿@model SEYRİ_ALA.Models.ViewModels.CityDetailsViewModel
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = Model.Name + " Keşfi";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+<div class="container mt-5">
+
+    @if (TempData["FavoriteMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mb-4 shadow-sm" role="alert" style="border-radius: 20px; border-left: 5px solid #198754;">
+            <i class="fas fa-check-circle me-2"></i> @TempData["FavoriteMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @* BAŞLIK VE FAVORİ *@
+    <div class="row align-items-end mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-2">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Ana Sayfa</a></li>
+                    <li class="breadcrumb-item active text-primary fw-bold" aria-current="page">@Model.Name Keşfi</li>
+                </ol>
+            </nav>
+            <h1 class="display-3 fw-bold text-dark mb-0">@Model.Name</h1>
+            <p class="text-muted fs-5"><i class="fas fa-map-marker-alt text-primary me-2"></i>Anadolu'nun Eşsiz Bir Köşesi</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            @if (User.Identity.IsAuthenticated)
+            {
+                <form asp-action="ToggleFavorite" method="post">
+                    <input type="hidden" name="cityId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-favorite @(Model.IsFavorite ? "active" : "") shadow-sm">
+                        <i class="@(Model.IsFavorite ? "fas" : "far") fa-heart me-2"></i>
+                        @(Model.IsFavorite ? "Favorilerimde" : "Favorilere Ekle")
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <div class="row">
+        @* SOL TARAF: GÖRSEL VE HAKKINDA *@
+        <div class="col-lg-7 mb-4">
+            <div class="img-container shadow-lg">
+                <img src="https://loremflickr.com/1200/800/@Model.Name,landmark/all"
+                     class="img-fluid main-img"
+                     alt="@Model.Name">
+            </div>
+
+            <div class="info-card mt-4 p-4 shadow-sm">
+                <h4 class="fw-bold mb-3"><i class="fas fa-info-circle text-primary me-2"></i>Bu Şehre Yolculuk</h4>
+                <p class="description-text">@Model.Description</p>
+                <div class="d-flex gap-3 mt-4">
+                    <div class="mini-fact">
+                        <span class="d-block text-muted small text-uppercase fw-bold">Konum</span>
+                        <span class="fw-bold">Türkiye</span>
+                    </div>
+                    <div class="mini-fact">
+                        <span class="d-block text-muted small text-uppercase fw-bold">Deneyim</span>
+                        <span class="fw-bold">@((Model.HistoryScore + Model.NatureScore + Model.FoodScore) > 20 ? "Efsanevi" : "Keyifli")</span>
+                    </div>
+                </div>
+            </div>
+                    @*  HAVA DURUMU VE YOL BİLGİSİ *@
+            
+            <div class="row mt-4">
+                <div class="col-md-6 mb-3">
+                    <div class="weather-section p-4 shadow-sm border-0 h-100" style="border-radius: 25px; background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);">
+                        <div class="d-flex justify-content-between align-items-center h-100">
+                            <div>
+                                <h5 class="text-primary fw-bold mb-1"><i class="fas fa-cloud-sun me-2"></i>Hava Durumu</h5>
+                                <p class="text-muted small mb-0" id="weather-status">Yükleniyor...</p>
+                            </div>
+                            <div class="text-end" id="weather-display-area">
+                                <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <div class="distance-section p-4 shadow-sm border-0 h-100" style="border-radius: 25px; background: linear-gradient(135deg, #f0fdf4 0%, #fafff7 100%);">
+                        <div class="d-flex justify-content-between align-items-center h-100">
+                            <div>
+                                <h5 class="text-success fw-bold mb-1"><i class="fas fa-car me-2"></i>Yol Bilgisi</h5>
+                                <p class="text-muted small mb-0" id="distance-status">Konum bekleniyor...</p>
+                            </div>
+                            <div class="text-end" id="distance-display-area">
+                                <i class="fas fa-location-arrow text-success animate__animated animate__pulse animate__infinite fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> 
+        <div class="col-lg-5">
+
+        @* SAĞ TARAF: ŞEHİR ANALİZİ *@
+        <div class="col-lg-15">
+            <div class="card border-0 shadow-sm p-4 h-100 analysis-card">
+                <h3 class="fw-bold mb-4">Keşif Karnesi</h3>
+                <div class="analysis-item mb-4">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="fw-bold"><i class="fas fa-monument me-2 text-warning"></i>Tarihi Doku</span>
+                        <span class="badge rounded-pill bg-warning text-dark">@Model.HistoryScore / 10</span>
+                    </div>
+                    <div class="progress custom-progress">
+                        <div class="progress-bar bg-warning" style="width: @(Model.HistoryScore * 10)%"></div>
+                    </div>
+                </div>
+                <div class="analysis-item mb-4">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="fw-bold"><i class="fas fa-tree me-2 text-success"></i>Doğal Yapı</span>
+                        <span class="badge rounded-pill bg-success">@Model.NatureScore / 10</span>
+                    </div>
+                    <div class="progress custom-progress">
+                        <div class="progress-bar bg-success" style="width: @(Model.NatureScore * 10)%"></div>
+                    </div>
+                </div>
+                <div class="analysis-item mb-4">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="fw-bold"><i class="fas fa-utensils me-2 text-danger"></i>Gastronomi</span>
+                        <span class="badge rounded-pill bg-danger">@Model.FoodScore / 10</span>
+                    </div>
+                    <div class="progress custom-progress">
+                        <div class="progress-bar bg-danger" style="width: @(Model.FoodScore * 10)%"></div>
+                    </div>
+                </div>
+                <div class="explore-callout p-3 mt-auto">
+                    <h6 class="fw-bold"><i class="fas fa-lightbulb me-2"></i>Biliyor muydunuz?</h6>
+                    <p class="small mb-0 text-muted">@Model.Name, bölgenin en çok merak edilen rotalarından biridir.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* YORUM KISMI *@
+    <div class="row mt-5 pb-5">
+        <div class="col-lg-12">
+            <h3 class="fw-bold mb-4"><i class="far fa-comments me-2"></i>Gezgin Yorumları (@Model.Comments.Count)</h3>
+            @if (User.Identity.IsAuthenticated)
+            {
+                <div class="card border-0 shadow-sm p-4 mb-4 comment-form-card">
+                    <h5 class="fw-bold mb-3">Sen ne düşünüyorsun?</h5>
+                    <form asp-action="AddComment" method="post">
+                        <input type="hidden" name="CityId" value="@Model.Id" />
+                        <div class="mb-3">
+                            <textarea name="Content" class="form-control" rows="3" placeholder="Deneyimlerini buraya yaz..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4">Paylaş</button>
+                    </form>
+                </div>
+            }
+            <div class="comment-list">
+                @if (Model.Comments != null && Model.Comments.Any())
+                {
+                    @foreach (var comment in Model.Comments.OrderByDescending(c => c.Id))
+                    {
+                        <div class="card border-0 shadow-sm p-3 mb-3 comment-bubble">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar me-3">@comment.UserName.Substring(0, 1).ToUpper()</div>
+                                    <div><span class="fw-bold">@comment.UserName</span></div>
+                                </div>
+                            </div>
+                            <p class="mb-0 text-secondary ps-5">@comment.Text</p>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        background-color: #fcfaf7;
+    }
+
+    .img-container {
+        border-radius: 30px;
+        overflow: hidden;
+        background-color: #f1ede8;
+        height: 500px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .main-img {
+        height: 100%;
+        width: 100%;
+        object-fit: cover;
+    }
+
+    .info-card, .analysis-card, .comment-form-card, .comment-bubble {
+        border-radius: 25px;
+        background: white;
+        border: 1px solid rgba(0,0,0,0.03);
+    }
+
+    .analysis-card {
+        background: #fffcf8;
+        border: 1px solid #f2e9dc;
+    }
+
+    .btn-favorite {
+        padding: 12px 25px;
+        border-radius: 50px;
+        background: white;
+        border: 1px solid #eee;
+        transition: 0.3s;
+    }
+
+        .btn-favorite.active {
+            color: #dc3545;
+            border-color: #ffc1c1;
+            background: #fff5f5;
+        }
+
+    .custom-progress {
+        height: 8px;
+        border-radius: 10px;
+    }
+
+    .avatar {
+        width: 40px;
+        height: 40px;
+        background: #0d6efd;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: bold;
+    }
+
+    .weather-section {
+        transition: transform 0.3s ease;
+    }
+
+        .weather-section:hover {
+            transform: translateY(-5px);
+        }
+</style>
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const weatherDisplay = document.getElementById("weather-display-area");
+            const weatherStatus = document.getElementById("weather-status");
+            const distanceDisplay = document.getElementById("distance-display-area");
+            const distanceStatus = document.getElementById("distance-status");
+
+            const cityId = "@Model.Id";
+
+            // --- HAVA DURUMU ---
+            async function loadWeather() {
+                try {
+                    const response = await fetch(`/City/GetWeather?cityId=${cityId}`);
+                    const data = await response.json();
+                    if (data && (data.temperature !== null || data.Temperature !== null)) {
+                        let temp = data.temperature ?? data.Temperature;
+                        let desc = data.weatherDescription ?? data.WeatherDescription;
+                        weatherStatus.innerText = "Canlı Atmosfer Verisi Aktif";
+                        weatherDisplay.innerHTML = `
+                            <div class="animate__animated animate__fadeInRight">
+                                <span class="h2 fw-bold text-dark">${Math.round(temp)}°C</span>
+                                <p class="mb-0 small fw-bold text-primary text-capitalize">${desc || "Açık"}</p>
+                            </div>`;
+                    }
+                } catch (error) {
+                    weatherStatus.innerText = "Hava Durumu Alınamadı";
+                    weatherDisplay.innerHTML = `<i class="fas fa-exclamation-triangle text-danger"></i>`;
+                }
+            }
+
+            // --- MESAFE ---
+            async function loadDistance() {
+                if (!navigator.geolocation) {
+                    distanceStatus.innerText = "Konum Desteklenmiyor";
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+
+                    try {
+                        distanceStatus.innerText = "Rota Hesaplanıyor...";
+                        const response = await fetch(`/City/GetDistance?cityId=${cityId}&userLat=${userLat}&userLon=${userLon}`);
+                        const data = await response.json();
+
+                        if (data && data.distance !== undefined) {
+                            distanceStatus.innerText = "Sürüş Mesafesi";
+                            // Eğer sayıysa büyük yaz, "Hesaplanamadı" ise küçük (h5) yaz
+                            let content = isNaN(data.distance)
+                                ? `<span class="h6 fw-bold text-danger">Hesaplanamadı</span>`
+                                : `<span class="h2 fw-bold text-dark">${data.distance}</span> <span class="fw-bold text-success">KM</span>`;
+
+                            distanceDisplay.innerHTML = `<div class="animate__animated animate__fadeInRight">${content}</div>`;
+                        }
+                    } catch (error) {
+                        distanceStatus.innerText = "Bağlantı Hatası";
+                        distanceDisplay.innerHTML = `<i class="fas fa-times text-danger"></i>`;
+                    }
+                }, (error) => {
+                    distanceStatus.innerText = "Konum İzni Yok";
+                    distanceDisplay.innerHTML = `<i class="fas fa-map-marker-slash text-muted"></i>`;
+                });
+            }
+
+            loadWeather();
+            loadDistance();
+        });
+    </script>
