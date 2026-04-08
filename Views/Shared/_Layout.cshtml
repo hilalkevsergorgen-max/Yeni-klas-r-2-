@@ -1,6 +1,5 @@
 ﻿@using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-
 <!DOCTYPE html>
 <html lang="tr" data-bs-theme="dark">
 <head>
@@ -12,131 +11,162 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <style>
+    /* 1. TEMA RENK DEĞİŞKENLERİ */
+    [data-bs-theme='dark'] {
+        --bs-body-bg: #141A23 !important;
+        --bs-body-color: #F8F9FA !important;
+        --custom-card-bg: #1E2632 !important;
+        --bs-border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-bs-theme='light'] {
+        --bs-body-bg: #FDFBF7 !important;
+        --bs-body-color: #1A1A1A !important;
+        --custom-card-bg: #FFFFFF !important;
+        --bs-border-color: rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+        background-color: var(--bs-body-bg) !important;
+        color: var(--bs-body-color) !important;
+        transition: all 0.4s ease;
+    }
+
+    /* 2. SAYILAR VE BİRİMLER: TURUNCU & PEMBE VURGU */
+    /* Hava durumu derecesi, KM sayısı gibi alanları hedefler */
+    .display-4, .h1, .h2, .fw-bold, [class*="temp"], [class*="distance"] {
+        color: #FD7E14 !important; /* Sabit Turuncu */
+        font-weight: 800 !important;
+    }
+
+    /* Birimleri ( °C, KM ) Pembe yapıyoruz */
+    .small, .unit-text, span:contains("°C"), span:contains("KM") {
+        color: #FF2E63 !important; /* Canlı Pembe */
+        font-weight: 700;
+    }
+
+    /* 3. KRİTİK GÖRÜNÜRLÜK: DARK MODDA BEYAZ YAZI ZORLAMASI */
+    [data-bs-theme='dark'] .card, 
+    [data-bs-theme='dark'] .bg-white, 
+    [data-bs-theme='dark'] .kesif-karnesi-box {
+        background-color: var(--custom-card-bg) !important;
+    }
+
+    /* Genel metinler beyaz kalsın, ama sayılar yukarıdaki turuncu kuralından gelsin */
+    [data-bs-theme='dark'] .card *, 
+    [data-bs-theme='dark'] .text-dark,
+    [data-bs-theme='dark'] .text-muted {
+        color: #F8F9FA; 
+    }
+
+    /* Marka */
+    .vibrant-orange-brand {
+        color: #FD7E14 !important;
+        font-weight: 800;
+        text-shadow: 0 0 10px rgba(253, 126, 20, 0.3);
+    }
+
+    /* Footer ve Mekanik Temizlik */
+    .predator-text { color: #0dcaf0; font-weight: 600; }
+    footer { border-top: 1px solid var(--bs-border-color); }
+
+    </style>
+
+    <script>
+            (function () {
+                const savedTheme = localStorage.getItem('theme') || 'dark';
+                document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            })();
+    </script>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom shadow-sm">
         <div class="container">
-            @* LOGO VE MARKA ALANI *@
             <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
                 <img src="~/images/logo.png" alt="Logo" style="height: 40px; width: auto; margin-right: 10px; border-radius: 8px;">
-                <span class="fw-bold tracking-tight">SEYRİ_ALA</span>
-            </a>
+                    <span class="vibrant-orange-brand">SEYRİ_ALA</span>
+                </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
 
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    @* 2. DÖNEM YENİ MENÜ LİNKLERİ *@
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="#map-frame">
-                            <i class="fas fa-map-marked-alt me-1"></i> Harita
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white me-3" href="#ai-selection">
-                            <i class="fas fa-robot me-1"></i> AI Rehber
-                        </a>
-                    </li>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto align-items-center">
+                        <li class="nav-item"><a class="nav-link text-white" href="/#map-frame"><i class="fas fa-map-marked-alt me-1"></i> Harita</a></li>
+                        <li class="nav-item"><a class="nav-link text-white me-3" href="/#ai-selection"><i class="fas fa-robot me-1"></i> AI Rehber</a></li>
 
-                    @* DİL DEĞİŞTİRME *@
-                    <li class="nav-item d-flex align-items-center me-3">
-                        <form asp-controller="Home" asp-action="ChangeLanguage" asp-route-returnUrl="@Context.Request.Path" method="post" class="d-flex gap-1">
-                            <button type="submit" name="culture" value="tr" class="btn btn-sm btn-outline-light py-0 px-2" style="font-size: 0.8rem; border-radius: 20px;">TR</button>
-                            <button type="submit" name="culture" value="en" class="btn btn-sm btn-outline-light py-0 px-2" style="font-size: 0.8rem; border-radius: 20px;">EN</button>
-                        </form>
-                    </li>
-
-                    @* TEMA DEĞİŞTİRME *@
-                    <li class="nav-item d-flex align-items-center me-2">
-                        <button type="button" class="btn btn-outline-info" onclick="toggleTheme()" style="border-radius: 50px; padding: 2px 12px;">
-                            <i id="themeIcon" class="fas fa-sun"></i>
-                        </button>
-                    </li>
-
-                    @if (User.Identity.IsAuthenticated)
-                    {
-                        <li class="nav-item">
-                            <span class="nav-link text-white">@Localizer["Hosgeldin"], @User.FindFirst("FullName")?.Value</span>
-                        </li>
-
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-warning fw-bold" asp-controller="Home" asp-action="AdminDashboard">
-                                    <i class="fas fa-user-shield"></i> Yönetim
-                                </a>
-                            </li>
-                        }
-
-                        <li class="nav-item">
-                            <a class="nav-link text-white" asp-controller="Home" asp-action="Favorites">
-                                <i class="fas fa-heart text-danger"></i> Favorilerim
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                <button type="submit" class="nav-link btn btn-link text-white border-0">@Localizer["CikisYap"]</button>
+                        <li class="nav-item d-flex align-items-center me-3">
+                            <form asp-controller="Home" asp-action="ChangeLanguage" asp-route-returnUrl="@Context.Request.Path" method="post" class="d-flex gap-1">
+                                <button type="submit" name="culture" value="tr" class="btn btn-sm btn-outline-light py-0 px-2" style="border-radius: 20px;">TR</button>
+                                <button type="submit" name="culture" value="en" class="btn btn-sm btn-outline-light py-0 px-2" style="border-radius: 20px;">EN</button>
                             </form>
                         </li>
-                    }
-                    else
-                    {
-                        <li class="nav-item">
-                            <a class="nav-link text-white" asp-controller="Account" asp-action="Register">@Localizer["KayitOl"]</a>
+
+                        <li class="nav-item d-flex align-items-center me-2">
+                            <button type="button" class="btn btn-outline-info" onclick="toggleTheme()" style="border-radius: 50px; padding: 2px 12px; min-width: 45px;">
+                                <i id="themeIcon" class="fas fa-sun"></i>
+                            </button>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white" asp-controller="Account" asp-action="Login">@Localizer["GirisYap"]</a>
-                        </li>
-                    }
-                </ul>
+
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item"><span class="nav-link text-white">@User.FindFirst("FullName")?.Value</span></li>
+                            <li class="nav-item"><a class="nav-link text-white" asp-controller="Home" asp-action="Favorites"><i class="fas fa-heart text-danger"></i></a></li>
+                            <li class="nav-item">
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                    <button type="submit" class="nav-link btn btn-link text-white border-0 py-0">Çıkış</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item"><a class="nav-link text-white" asp-controller="Account" asp-action="Register">Kayıt Ol</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" asp-controller="Account" asp-action="Login">Giriş Yap</a></li>
+                        }
+                    </ul>
+                </div>
             </div>
+        </nav>
+
+        <div class="container-fluid p-0">
+            <main role="main" class="pb-3">
+                @RenderBody()
+            </main>
         </div>
-    </nav>
 
-    <div class="container mt-4">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+        <footer class="footer mt-auto">
+            <div class="container text-center py-4">
+                <span>&copy; 2026 - SEYRİ_ALA</span>
+                <span class="mx-2">|</span>
+                <span class="predator-text">Predator Mode Active</span>
+            </div>
+        </footer>
 
-    <footer class="border-top footer text-muted bg-dark mt-auto">
-        <div class="container text-center py-3">
-            &copy; 2026 - SEYRİ_ALA | <span class="text-info">Predator Mode Active</span>
-        </div>
-    </footer>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            function updateThemeIcon(theme) {
+            const themeIcon = document.getElementById('themeIcon');
+            if (themeIcon) { themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; }
+            }
 
-    <script>
-        function toggleTheme() {
+            function toggleTheme() {
             const htmlElement = document.documentElement;
-            const themeIcon = document.getElementById('themeIcon');
             let currentTheme = htmlElement.getAttribute('data-bs-theme');
-
-            if (currentTheme === 'dark') {
-                htmlElement.setAttribute('data-bs-theme', 'light');
-                themeIcon.className = 'fas fa-moon';
-                localStorage.setItem('theme', 'light');
-            } else {
-                htmlElement.setAttribute('data-bs-theme', 'dark');
-                themeIcon.className = 'fas fa-sun';
-                localStorage.setItem('theme', 'dark');
+            let newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            htmlElement.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
             }
-        }
 
-        (function() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-bs-theme', savedTheme);
-            const themeIcon = document.getElementById('themeIcon');
-            if (themeIcon) {
-                themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-            }
-        })();
-    </script>
-
-    @await RenderSectionAsync("Scripts", required: false)
-</body>
+            document.addEventListener('DOMContentLoaded', () => {
+            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+            updateThemeIcon(currentTheme);
+            });
+        </script>
+        @await RenderSectionAsync("Scripts", required: false)
+    </body>
 </html>
