@@ -57,7 +57,7 @@ namespace SEYRİ_ALA.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Comments");
+                    b.ToTable("Comments", (string)null);
                 });
 
             modelBuilder.Entity("SEYRİ_ALA.Models.City", b =>
@@ -103,7 +103,7 @@ namespace SEYRİ_ALA.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Cities");
+                    b.ToTable("Cities", (string)null);
 
                     b.HasData(
                         new
@@ -1101,7 +1101,7 @@ namespace SEYRİ_ALA.Migrations
                     b.HasIndex("UserId", "CityId")
                         .IsUnique();
 
-                    b.ToTable("Favorites");
+                    b.ToTable("Favorites", (string)null);
                 });
 
             modelBuilder.Entity("SEYRİ_ALA.Models.Place", b =>
@@ -1132,7 +1132,7 @@ namespace SEYRİ_ALA.Migrations
 
                     b.HasIndex("CityId");
 
-                    b.ToTable("Places");
+                    b.ToTable("Places", (string)null);
                 });
 
             modelBuilder.Entity("SEYRİ_ALA.Models.TravelRoute", b =>
@@ -1170,7 +1170,7 @@ namespace SEYRİ_ALA.Migrations
 
                     b.HasIndex("CityId");
 
-                    b.ToTable("Routes");
+                    b.ToTable("Routes", (string)null);
                 });
 
             modelBuilder.Entity("SEYRİ_ALA.Models.User", b =>
@@ -1199,7 +1199,7 @@ namespace SEYRİ_ALA.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Comment", b =>

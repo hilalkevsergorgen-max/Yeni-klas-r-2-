@@ -10,6 +10,7 @@ namespace SEYRİ_ALA.Data
         public DbSet<User> Users => Set<User>();
         public DbSet<City> Cities { get; set; }
         public DbSet<TravelRoute> Routes => Set<TravelRoute>();
+        public DbSet<UserPreference> UserPreferences { get; set; }
         public DbSet<Comment> Comments => Set<Comment>();
         public DbSet<Favorite> Favorites => Set<Favorite>();
 

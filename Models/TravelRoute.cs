@@ -10,6 +10,7 @@ namespace SEYRİ_ALA.Models
         public City City { get; set; } = null!;
 
         public string Title { get; set; } = null!;
+        public string? AiSuggestion { get; set; } // AI'nın rota hakkındaki tavsiyesi buraya yazılacak.
         public string Description { get; set; } = null!;
         public string? MapGeoJson { get; set; }
         public double Latitude { get; set; }  // Enlem
